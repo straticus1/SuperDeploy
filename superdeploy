@@ -117,17 +117,163 @@ remove_project() {
     log "INFO" "Removed project '${project}' from build list."
 }
 
+# Detect deployment system for a project
+detect_deployment_system() {
+    local project=$1
+    local project_dir="${PROJECTS_DIR}/${project}"
+    
+    # Check for custom deployment scripts (in order of preference)
+    local deploy_scripts=(
+        "scripts/deploy/master-deploy.sh"
+        "scripts/deploy/deploy.sh"
+        "deploy/master-deploy.sh"
+        "deploy/deploy.sh"
+        "bin/deploy.sh"
+        "deploy.sh"
+    )
+    
+    for script in "${deploy_scripts[@]}"; do
+        if [ -x "${project_dir}/${script}" ]; then
+            echo "custom:${script}"
+            return 0
+        fi
+    done
+    
+    # Check for terraform/ansible directories
+    local has_terraform=false
+    local has_ansible=false
+    
+    if [ -d "${project_dir}/terraform" ]; then
+        has_terraform=true
+    fi
+    
+    if [ -d "${project_dir}/ansible" ]; then
+        has_ansible=true
+    fi
+    
+    if [ "$has_terraform" = true ] || [ "$has_ansible" = true ]; then
+        echo "standard:terraform=${has_terraform},ansible=${has_ansible}"
+        return 0
+    fi
+    
+    echo "none"
+    return 1
+}
+
+# Deploy using custom deployment script
+deploy_with_custom_script() {
+    local project=$1
+    local script_path=$2
+    local project_dir="${PROJECTS_DIR}/${project}"
+    shift 2  # Remove project and script_path, keep any additional args
+    local extra_args="$@"
+    
+    log "INFO" "Using custom deployment script: ${script_path}"
+    
+    # Build arguments for custom script
+    local script_args="--auto-approve"
+    if [[ "$extra_args" == *"--plan-only"* ]]; then
+        script_args="$script_args --plan-only"
+    fi
+    if [[ "$extra_args" == *"--verbose"* ]]; then
+        script_args="$script_args --verbose"
+    fi
+    if [[ "$extra_args" == *"--infrastructure-only"* ]]; then
+        script_args="$script_args --infrastructure-only"
+    fi
+    if [[ "$extra_args" == *"--application-only"* ]]; then
+        script_args="$script_args --application-only"
+    fi
+    
+    log "INFO" "Running: ./${script_path} ${script_args}"
+    
+    # Change to project directory and run the custom script
+    (cd "${project_dir}" && \
+     "./${script_path}" ${script_args}) || {
+        log "ERROR" "Custom deployment script failed for ${project}"
+        log "INFO" "You can run the script manually: cd ${project_dir} && ./${script_path} --help"
+        return 1
+    }
+}
+
+# Deploy using standard terraform/ansible approach
+deploy_with_standard_tools() {
+    local project=$1
+    local deployment_info=$2
+    local project_dir="${PROJECTS_DIR}/${project}"
+    shift 2  # Remove project and deployment_info, keep extra args
+    local extra_args="$@"
+    
+    # Parse deployment info
+    local has_terraform=$(echo "$deployment_info" | grep -o 'terraform=true' > /dev/null && echo true || echo false)
+    local has_ansible=$(echo "$deployment_info" | grep -o 'ansible=true' > /dev/null && echo true || echo false)
+    
+    # Run Terraform
+    if [ "$has_terraform" = true ]; then
+        if [[ "$extra_args" == *"--plan-only"* ]]; then
+            log "INFO" "Running Terraform plan..."
+            (cd "${project_dir}/terraform" && \
+             terraform init && \
+             terraform plan) || {
+                log "ERROR" "Terraform plan failed for ${project}"
+                return 1
+            }
+        elif [[ "$extra_args" == *"--application-only"* ]]; then
+            log "INFO" "Skipping Terraform (application-only mode)"
+        else
+            log "INFO" "Running Terraform..."
+            (cd "${project_dir}/terraform" && \
+             terraform init && \
+             terraform apply -auto-approve) || {
+                log "ERROR" "Terraform deployment failed for ${project}"
+                return 1
+            }
+        fi
+    fi
+    
+    # Run Ansible
+    if [ "$has_ansible" = true ]; then
+        if [[ "$extra_args" == *"--plan-only"* ]] || [[ "$extra_args" == *"--infrastructure-only"* ]]; then
+            log "INFO" "Skipping Ansible (plan-only or infrastructure-only mode)"
+        else
+            log "INFO" "Running Ansible..."
+            (cd "${project_dir}/ansible" && {
+                # Try different playbook configurations
+                if [ -f "deploy.yml" ] && [ -f "inventory.yml" ]; then
+                    ansible-playbook -i inventory.yml deploy.yml
+                elif [ -f "playbook.yml" ] && [ -f "inventory.yml" ]; then
+                    ansible-playbook -i inventory.yml playbook.yml
+                elif [ -f "site.yml" ] && [ -d "inventory" ]; then
+                    ansible-playbook -i inventory/production site.yml
+                else
+                    log "ERROR" "No suitable ansible configuration found for ${project}"
+                    return 1
+                fi
+            }) || {
+                log "ERROR" "Ansible deployment failed for ${project}"
+                return 1
+            }
+        fi
+    fi
+}
+
 # Deploy a project
 deploy_project() {
     local project=$1
     local project_dir="${PROJECTS_DIR}/${project}"
+    shift  # Remove project name, keep any additional args
+    local extra_args="$@"
     
     if ! project_exists "$project"; then
         log "ERROR" "Project '${project}' not found in build list."
         return 1
     fi
     
-    log "INFO" "Starting deployment for project: ${project}"
+    if [[ "$extra_args" == *"--plan-only"* ]]; then
+        log "INFO" "Starting deployment plan for project: ${project}"
+    else
+        log "INFO" "Starting deployment for project: ${project}"
+    fi
     
     # Check if project directory exists
     if [ ! -d "${project_dir}" ]; then
@@ -135,39 +281,42 @@ deploy_project() {
         return 1
     fi
     
-    # Run Terraform
-    if [ -d "${project_dir}/terraform" ]; then
-        log "INFO" "Running Terraform..."
-        (cd "${project_dir}/terraform" && \
-         terraform init && \
-         terraform apply -auto-approve) || {
-            log "ERROR" "Terraform deployment failed for ${project}"
-            return 1
-        }
-    fi
+    # Detect deployment system
+    local deployment_system=$(detect_deployment_system "$project")
+    log "INFO" "Detected deployment system: ${deployment_system}"
     
-    # Run Ansible
-    if [ -d "${project_dir}/ansible" ]; then
-        log "INFO" "Running Ansible..."
-        (cd "${project_dir}/ansible" && {
-            # Try different playbook configurations
-            if [ -f "deploy.yml" ] && [ -f "inventory.yml" ]; then
-                ansible-playbook -i inventory.yml deploy.yml
-            elif [ -f "playbook.yml" ] && [ -f "inventory.yml" ]; then
-                ansible-playbook -i inventory.yml playbook.yml
-            elif [ -f "site.yml" ] && [ -d "inventory" ]; then
-                ansible-playbook -i inventory/production site.yml
-            else
-                log "ERROR" "No suitable ansible configuration found for ${project}"
-                return 1
-            fi
-        }) || {
-            log "ERROR" "Ansible deployment failed for ${project}"
+    case "$deployment_system" in
+        custom:*)
+            local script_path=${deployment_system#custom:}
+            deploy_with_custom_script "$project" "$script_path" $extra_args
+            ;;
+        standard:*)
+            local deployment_info=${deployment_system#standard:}
+            deploy_with_standard_tools "$project" "$deployment_info" $extra_args
+            ;;
+        none)
+            log "WARN" "No deployment system detected for ${project}"
+            log "INFO" "Looking for common deployment files..."
+            
+            # List what we found to help the user
+            log "INFO" "Project structure:"
+            find "${project_dir}" -maxdepth 3 -type f -name "*.sh" -o -name "*.yml" -o -name "*.yaml" -o -name "*.tf" | head -10 | while read -r file; do
+                log "INFO" "  Found: ${file#${project_dir}/}"
+            done
+            
+            log "ERROR" "No suitable deployment system found for ${project}"
+            log "INFO" "Supported deployment systems:"
+            log "INFO" "  • Custom scripts: scripts/deploy/master-deploy.sh, deploy.sh, etc."
+            log "INFO" "  • Standard: terraform/ and/or ansible/ directories"
             return 1
-        }
-    fi
+            ;;
+    esac
     
-    log "INFO" "Successfully deployed project: ${project}"
+    if [[ "$extra_args" == *"--plan-only"* ]]; then
+        log "INFO" "Successfully completed deployment plan for project: ${project}"
+    else
+        log "INFO" "Successfully deployed project: ${project}"
+    fi
 }
 
 # Teardown a project
@@ -213,11 +362,45 @@ check_project() {
     
     log "INFO" "Checking status for project: ${project}"
     
-    # Check Terraform status
-    if [ -d "${project_dir}/terraform" ]; then
-        log "INFO" "Terraform status:"
-        (cd "${project_dir}/terraform" && terraform show)
-    fi
+    # Detect deployment system
+    local deployment_system=$(detect_deployment_system "$project")
+    log "INFO" "Detected deployment system: ${deployment_system}"
+    
+    case "$deployment_system" in
+        custom:*)
+            local script_path=${deployment_system#custom:}
+            log "INFO" "Project uses custom deployment script: ${script_path}"
+            if [ -x "${project_dir}/${script_path}" ]; then
+                log "INFO" "Custom script is executable and ready"
+                log "INFO" "Run: cd ${project_dir} && ./${script_path} --help for options"
+            else
+                log "WARN" "Custom script found but not executable"
+            fi
+            ;;
+        standard:*)
+            local deployment_info=${deployment_system#standard:}
+            local has_terraform=$(echo "$deployment_info" | grep -o 'terraform=true' > /dev/null && echo true || echo false)
+            local has_ansible=$(echo "$deployment_info" | grep -o 'ansible=true' > /dev/null && echo true || echo false)
+            
+            if [ "$has_terraform" = true ]; then
+                log "INFO" "Terraform configuration found"
+                if [ -f "${project_dir}/terraform/terraform.tfstate" ]; then
+                    log "INFO" "Terraform state exists - checking status:"
+                    (cd "${project_dir}/terraform" && terraform show --json > /dev/null 2>&1 && echo "  ✓ Terraform state is valid" || echo "  ✗ Terraform state may be corrupted")
+                else
+                    log "INFO" "No Terraform state found - infrastructure may not be deployed"
+                fi
+            fi
+            
+            if [ "$has_ansible" = true ]; then
+                log "INFO" "Ansible configuration found"
+                log "INFO" "Ansible inventory and playbooks are available"
+            fi
+            ;;
+        none)
+            log "WARN" "No deployment system detected for ${project}"
+            ;;
+    esac
     
     log "INFO" "Status check complete for project: ${project}"
 }
@@ -272,10 +455,20 @@ main() {
             ;;
         deploy)
             if [ -z "$project" ]; then
-                log "ERROR" "No project specified. Usage: $0 deploy <project-name>"
+                log "ERROR" "No project specified. Usage: $0 deploy <project-name> [options]"
                 exit 1
             fi
-            deploy_project "$project"
+            # Pass all remaining arguments to deploy_project
+            shift 2  # Remove 'deploy' and project name
+            deploy_project "$project" "$@"
+            ;;
+        plan)
+            if [ -z "$project" ]; then
+                log "ERROR" "No project specified. Usage: $0 plan <project-name>"
+                exit 1
+            fi
+            # Pass --plan-only to deploy_project
+            deploy_project "$project" "--plan-only"
             ;;
         teardown)
             if [ -z "$project" ]; then
@@ -300,17 +493,28 @@ main() {
             ;;
         *|help|--help|-h)
             echo "SuperDeploy - Unified Deployment System"
-            echo "Usage: $0 <command> [project]"
+            echo "Usage: $0 <command> [project] [options]"
             echo ""
             echo "Commands:"
             echo "  list                        List all managed projects"
             echo "  add <project>               Add a new project"
             echo "  remove <project>            Remove a project"
-            echo "  deploy <project>            Deploy a project"
+            echo "  deploy <project> [options]  Deploy a project"
+            echo "  plan <project>              Show deployment plan (no changes)"
             echo "  teardown <project>          Tear down a project"
             echo "  check <project>             Check project status"
             echo "  refresh <project>           Rebuild/redeploy a project"
             echo "  help                        Show this help message"
+            echo ""
+            echo "Deployment Options:"
+            echo "  --plan-only                 Show plan without making changes"
+            echo "  --infrastructure-only       Deploy infrastructure only"
+            echo "  --application-only          Deploy application only"
+            echo "  --verbose                   Verbose output"
+            echo ""
+            echo "Supported Deployment Systems:"
+            echo "  • Custom scripts: scripts/deploy/master-deploy.sh, deploy.sh, etc."
+            echo "  • Standard: terraform/ and/or ansible/ directories"
             ;;
     esac
 }
