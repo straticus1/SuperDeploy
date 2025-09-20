@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# SuperDeploy - Unified Deployment System
-# Version: 1.0.0
+# SuperDeploy - Unified Deployment System  
+# Version: 2.1.0
 
 # Configuration
 SUPERDEPLOY_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_LIST="${SUPERDEPLOY_HOME}/build.lst"
 PROJECTS_DIR="/Users/ryan/development"
+DEPLOY_TEMPLATES_DIR="${SUPERDEPLOY_HOME}/deploy.d"
 LOG_DIR="${SUPERDEPLOY_HOME}/logs"
 LOG_FILE="${LOG_DIR}/superdeploy_$(date +%Y%m%d).log"
 
 # Ensure required directories exist
 mkdir -p "${LOG_DIR}"
+mkdir -p "${DEPLOY_TEMPLATES_DIR}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -444,6 +446,265 @@ refresh_project() {
     log "INFO" "Successfully refreshed project: ${project}"
 }
 
+# List available deployment templates
+list_templates() {
+    log "INFO" "Available deployment templates:"
+    
+    if [ ! -d "${DEPLOY_TEMPLATES_DIR}" ] || [ -z "$(ls -A "${DEPLOY_TEMPLATES_DIR}" 2>/dev/null)" ]; then
+        log "WARN" "No deployment templates found in ${DEPLOY_TEMPLATES_DIR}"
+        return 1
+    fi
+    
+    for template_dir in "${DEPLOY_TEMPLATES_DIR}"/*; do
+        if [ -d "$template_dir" ]; then
+            local template_name=$(basename "$template_dir")
+            echo "  📁 ${template_name}/"
+            
+            # List scripts in the template directory
+            find "$template_dir" -name "*.sh" -o -name "*.py" -o -name "*.js" | while read -r script; do
+                local script_rel=${script#${template_dir}/}
+                echo "     🚀 ${script_rel}"
+            done
+        fi
+    done
+    
+    # List standalone demo scripts
+    for script in "${DEPLOY_TEMPLATES_DIR}"/*.sh "${DEPLOY_TEMPLATES_DIR}"/*.py "${DEPLOY_TEMPLATES_DIR}"/*.js; do
+        if [ -f "$script" ]; then
+            local script_name=$(basename "$script")
+            echo "  🚀 ${script_name} (standalone demo)"
+        fi
+    done
+}
+
+# Install deployment script from template
+install_deploy_script() {
+    local project=$1
+    local template=$2
+    local script_path=$3
+    local project_dir="${PROJECTS_DIR}/${project}"
+    
+    if [ -z "$project" ] || [ -z "$template" ]; then
+        log "ERROR" "Usage: install <project> <template> [script-path]"
+        log "INFO" "Available templates:"
+        list_templates
+        return 1
+    fi
+    
+    if [ ! -d "$project_dir" ]; then
+        log "ERROR" "Project directory not found: ${project_dir}"
+        return 1
+    fi
+    
+    # Check if template exists
+    local template_source="${DEPLOY_TEMPLATES_DIR}/${template}"
+    
+    if [ -d "$template_source" ]; then
+        # Template is a directory - copy entire structure
+        log "INFO" "Installing deployment template '${template}' for project '${project}'"
+        
+        # Default script path if not specified
+        if [ -z "$script_path" ]; then
+            script_path="deploy.sh"
+        fi
+        
+        local target_dir="${project_dir}/$(dirname "$script_path")"
+        mkdir -p "$target_dir"
+        
+        # Copy all files from template directory
+        cp -r "$template_source"/* "$target_dir"/
+        
+        # Make scripts executable
+        find "$target_dir" -name "*.sh" -o -name "*.py" -o -name "*.js" | xargs chmod +x
+        
+        log "SUCCESS" "Deployment template installed to ${target_dir}"
+        log "INFO" "Main deployment script: ${project_dir}/${script_path}"
+        
+    elif [ -f "$template_source" ]; then
+        # Template is a single file - copy as deployment script
+        log "INFO" "Installing deployment script '${template}' for project '${project}'"
+        
+        # Default script path based on template extension
+        if [ -z "$script_path" ]; then
+            local ext="${template##*.}"
+            case "$ext" in
+                py) script_path="deploy.py" ;;
+                js) script_path="deploy.js" ;;
+                *) script_path="deploy.sh" ;;
+            esac
+        fi
+        
+        local target_file="${project_dir}/${script_path}"
+        local target_dir=$(dirname "$target_file")
+        
+        mkdir -p "$target_dir"
+        cp "$template_source" "$target_file"
+        chmod +x "$target_file"
+        
+        log "SUCCESS" "Deployment script installed to ${target_file}"
+        
+    else
+        log "ERROR" "Template '${template}' not found in ${DEPLOY_TEMPLATES_DIR}"
+        log "INFO" "Available templates:"
+        list_templates
+        return 1
+    fi
+    
+    # Update the script with project-specific information
+    if [ -f "${project_dir}/${script_path}" ]; then
+        log "INFO" "Customizing deployment script for project '${project}'"
+        
+        # Replace placeholder project names (if any)
+        sed -i.bak "s/PROJECT_NAME=\".*\"/PROJECT_NAME=\"${project}\"/g" "${project_dir}/${script_path}" 2>/dev/null || true
+        sed -i.bak "s/project_name=.*/project_name=\"${project}\"/g" "${project_dir}/${script_path}" 2>/dev/null || true
+        sed -i.bak "s/\"project_name\": \".*\"/\"project_name\": \"${project}\"/g" "${project_dir}/${script_path}" 2>/dev/null || true
+        
+        # Remove backup file
+        rm -f "${project_dir}/${script_path}.bak" 2>/dev/null || true
+    fi
+    
+    log "INFO" "You can now deploy using: $0 deploy ${project}"
+    log "INFO" "Or run the script directly: cd ${project_dir} && ./${script_path} --help"
+}
+
+# Create a new deployment template
+create_template() {
+    local template_name=$1
+    local template_type=${2:-bash}  # bash, python, javascript
+    
+    if [ -z "$template_name" ]; then
+        log "ERROR" "Usage: create-template <template-name> [type]"
+        log "INFO" "Types: bash, python, javascript"
+        return 1
+    fi
+    
+    local template_dir="${DEPLOY_TEMPLATES_DIR}/${template_name}"
+    
+    if [ -d "$template_dir" ]; then
+        log "ERROR" "Template '${template_name}' already exists"
+        return 1
+    fi
+    
+    mkdir -p "$template_dir"
+    
+    case "$template_type" in
+        python|py)
+            log "INFO" "Creating Python deployment template: ${template_name}"
+            cp "${DEPLOY_TEMPLATES_DIR}/demo-deploy.py" "${template_dir}/deploy.py"
+            chmod +x "${template_dir}/deploy.py"
+            ;;
+        javascript|js|node)
+            log "INFO" "Creating Node.js deployment template: ${template_name}"
+            cp "${DEPLOY_TEMPLATES_DIR}/demo-deploy.js" "${template_dir}/deploy.js"
+            chmod +x "${template_dir}/deploy.js"
+            ;;
+        bash|sh|*)
+            log "INFO" "Creating Bash deployment template: ${template_name}"
+            # Create a basic bash template
+            cat > "${template_dir}/deploy.sh" << 'EOF'
+#!/bin/bash
+
+# Custom Deployment Script
+# Generated by SuperDeploy
+
+set -e
+
+# Configuration
+PROJECT_NAME="your-project"
+ENVIRONMENT=${1:-prod}
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log() {
+    local level=$1
+    local message=$2
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "[${timestamp}] [${level}] ${message}"
+}
+
+print_header() {
+    echo -e "\n${BLUE}================================${NC}"
+    echo -e "${BLUE} $1${NC}"
+    echo -e "${BLUE}================================${NC}\n"
+}
+
+check_prerequisites() {
+    log "INFO" "Checking prerequisites..."
+    
+    # Add your prerequisite checks here
+    command -v docker >/dev/null 2>&1 || { log "ERROR" "Docker is required"; exit 1; }
+    command -v aws >/dev/null 2>&1 || { log "ERROR" "AWS CLI is required"; exit 1; }
+    
+    log "INFO" "Prerequisites check passed"
+}
+
+deploy_infrastructure() {
+    log "INFO" "Deploying infrastructure..."
+    
+    # Add your infrastructure deployment logic here
+    if [ -d "terraform" ]; then
+        cd terraform
+        terraform init
+        terraform apply -auto-approve
+        cd ..
+    fi
+    
+    log "INFO" "Infrastructure deployment completed"
+}
+
+deploy_application() {
+    log "INFO" "Deploying application..."
+    
+    # Add your application deployment logic here
+    if [ -f "Dockerfile" ]; then
+        docker build -t "${PROJECT_NAME}:latest" .
+        # Add docker push logic
+    fi
+    
+    log "INFO" "Application deployment completed"
+}
+
+main() {
+    print_header "Deploying ${PROJECT_NAME}"
+    
+    check_prerequisites
+    deploy_infrastructure
+    deploy_application
+    
+    log "INFO" "Deployment completed successfully!"
+}
+
+# Handle command line arguments
+case "${1:-deploy}" in
+    deploy)
+        main
+        ;;
+    help|--help|-h)
+        echo "Usage: $0 [deploy|help]"
+        echo "Commands:"
+        echo "  deploy    Deploy the application (default)"
+        echo "  help      Show this help message"
+        ;;
+    *)
+        echo "Unknown command: $1"
+        echo "Run '$0 help' for usage information."
+        exit 1
+        ;;
+esac
+EOF
+            chmod +x "${template_dir}/deploy.sh"
+            ;;
+    esac
+    
+    log "SUCCESS" "Template '${template_name}' created in ${template_dir}"
+    log "INFO" "You can now install it with: $0 install <project> ${template_name}"
+}
+
 # Main function
 main() {
     # Check requirements
@@ -509,11 +770,31 @@ main() {
             fi
             refresh_project "$project"
             ;;
+        templates|list-templates)
+            list_templates
+            ;;
+        install)
+            if [ -z "$project" ]; then
+                log "ERROR" "No project specified. Usage: $0 install <project> <template> [script-path]"
+                exit 1
+            fi
+            local template=$3
+            local script_path=$4
+            install_deploy_script "$project" "$template" "$script_path"
+            ;;
+        create-template)
+            if [ -z "$project" ]; then
+                log "ERROR" "No template name specified. Usage: $0 create-template <template-name> [type]"
+                exit 1
+            fi
+            local template_type=$3
+            create_template "$project" "$template_type"
+            ;;
         *|help|--help|-h)
             echo "SuperDeploy - Unified Deployment System"
             echo "Usage: $0 <command> [project] [options]"
             echo ""
-            echo "Commands:"
+            echo "Core Commands:"
             echo "  list                        List all managed projects"
             echo "  add <project>               Add a new project"
             echo "  remove <project>            Remove a project"
@@ -522,6 +803,12 @@ main() {
             echo "  teardown <project>          Tear down a project"
             echo "  check <project>             Check project status"
             echo "  refresh <project>           Rebuild/redeploy a project"
+            echo ""
+            echo "Template Management:"
+            echo "  templates                   List available deployment templates"
+            echo "  install <project> <template> [path]  Install deployment script from template"
+            echo "  create-template <name> [type]        Create a new deployment template"
+            echo ""
             echo "  help                        Show this help message"
             echo ""
             echo "Deployment Options:"
@@ -529,6 +816,15 @@ main() {
             echo "  --infrastructure-only       Deploy infrastructure only"
             echo "  --application-only          Deploy application only"
             echo "  --verbose                   Verbose output"
+            echo ""
+            echo "Template Types (for create-template):"
+            echo "  bash, python, javascript    Language for the deployment template"
+            echo ""
+            echo "Examples:"
+            echo "  $0 templates                List available templates"
+            echo "  $0 install myproject demo-deploy.py deploy.py"
+            echo "  $0 create-template mytemplate python"
+            echo "  $0 deploy myproject --plan-only"
             echo ""
             echo "Deployment System Detection Priority:"
             echo "  1. Custom scripts: deploy/deploy.sh, deploy.py, deploy.sh, etc."

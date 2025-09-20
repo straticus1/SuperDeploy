@@ -187,6 +187,43 @@ See [docs/INSTALL.md](docs/INSTALL.md) for detailed installation instructions.
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common issues and solutions.
 
+## Template System
+
+SuperDeploy includes a powerful template system for projects that don't have deployment scripts yet:
+
+### Template Management Commands
+
+```bash
+# List available templates
+./superdeploy templates
+
+# Install a deployment script from template
+./superdeploy install myproject demo-deploy.py
+./superdeploy install myproject dev.disease.zone deploy.sh
+
+# Create new templates
+./superdeploy create-template mytemplate python
+./superdeploy create-template api-template javascript
+```
+
+### Available Templates
+
+- **demo-deploy.py** - Comprehensive Python deployment with Docker, AWS ECS, Terraform
+- **demo-deploy.js** - Complete Node.js deployment with package manager detection, TypeScript support
+- **dev.disease.zone** - Real-world example template with complex deployment pipeline
+- Custom templates you create
+
+### Template Features
+
+All templates are compatible with SuperDeploy's argument system and include:
+- `--auto-approve`, `--plan-only`, `--infrastructure-only`, `--application-only`, `--verbose`
+- Comprehensive error handling and logging
+- Prerequisites checking
+- Security best practices
+- Language-specific optimizations
+
+See [deploy.d/README.md](deploy.d/README.md) for detailed template documentation.
+
 ## Logging
 
 SuperDeploy automatically creates logs in the `logs/` directory with daily rotation:
@@ -195,7 +232,7 @@ SuperDeploy automatically creates logs in the `logs/` directory with daily rotat
 
 ## Version
 
-Current version: 2.0.0
+Current version: 2.1.0
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
 

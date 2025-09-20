@@ -32,3 +32,31 @@
 [2025-09-20 10:52:57] [INFO] Detected deployment system: none
 [2025-09-20 10:52:57] [WARN] No deployment system detected for terraform
 [2025-09-20 10:52:57] [INFO] Status check complete for project: terraform
+[2025-09-20 11:47:08] [INFO] Available deployment templates:
+[2025-09-20 11:47:15] [INFO] Creating Python deployment template: python-webapp
+[2025-09-20 11:47:15] [SUCCESS] Template 'python-webapp' created in /Users/ryan/development/SuperDeploy/deploy.d/python-webapp
+[2025-09-20 11:47:15] [INFO] You can now install it with: ./superdeploy install <project> python-webapp
+[2025-09-20 11:47:25] [INFO] Creating Node.js deployment template: nodejs-api
+[2025-09-20 11:47:25] [SUCCESS] Template 'nodejs-api' created in /Users/ryan/development/SuperDeploy/deploy.d/nodejs-api
+[2025-09-20 11:47:25] [INFO] You can now install it with: ./superdeploy install <project> nodejs-api
+[2025-09-20 11:47:32] [INFO] Available deployment templates:
+[2025-09-20 11:47:44] [INFO] Installing deployment script 'demo-deploy.py' for project 'test-project'
+[2025-09-20 11:47:44] [SUCCESS] Deployment script installed to /Users/ryan/development/test-project/deploy.py
+[2025-09-20 11:47:44] [INFO] Customizing deployment script for project 'test-project'
+[2025-09-20 11:47:44] [INFO] You can now deploy using: ./superdeploy deploy test-project
+[2025-09-20 11:47:44] [INFO] Or run the script directly: cd /Users/ryan/development/test-project && ./deploy.py --help
+[2025-09-20 11:48:40] [INFO] Installing deployment template 'dev.disease.zone' for project 'test-project2'
+[2025-09-20 11:48:40] [SUCCESS] Deployment template installed to /Users/ryan/development/test-project2/.
+[2025-09-20 11:48:40] [INFO] Main deployment script: /Users/ryan/development/test-project2/deploy.sh
+[2025-09-20 11:48:40] [INFO] Customizing deployment script for project 'test-project2'
+[2025-09-20 11:48:40] [INFO] You can now deploy using: ./superdeploy deploy test-project2
+[2025-09-20 11:48:40] [INFO] Or run the script directly: cd /Users/ryan/development/test-project2 && ./deploy.sh --help
+[2025-09-20 11:48:54] [INFO] Added project 'test-project' to build list.
+[2025-09-20 11:48:58] [INFO] Checking status for project: test-project
+[2025-09-20 11:48:58] [INFO] Detected deployment system: custom:deploy.py
+[2025-09-20 11:48:58] [INFO] Project uses custom deployment script: deploy.py
+[2025-09-20 11:48:58] [INFO] Custom script is executable and ready
+[2025-09-20 11:48:58] [INFO] Run: cd /Users/ryan/development/test-project && ./deploy.py --help for options
+[2025-09-20 11:48:58] [INFO] Status check complete for project: test-project
+[2025-09-20 11:49:48] [INFO] Removed project 'test-project' from build list.
+[2025-09-20 11:50:11] [INFO] Available deployment templates:
