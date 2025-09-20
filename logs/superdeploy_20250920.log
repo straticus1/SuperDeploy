@@ -1,0 +1,34 @@
+[2025-09-20 06:44:29] [INFO] Managed Projects:
+[2025-09-20 06:50:28] [ERROR] Project '9lives.xyx' not found in build list.
+[2025-09-20 06:51:32] [INFO] Managed Projects:
+[2025-09-20 06:51:53] [ERROR] No project specified. Usage: ./superdeploy deploy <project-name>
+[2025-09-20 06:52:03] [INFO] Managed Projects:
+[2025-09-20 06:52:29] [ERROR] Project '9lives.xyx' not found in build list.
+[2025-09-20 06:52:52] [INFO] Starting deployment for project: 9lives.xyz
+[2025-09-20 06:52:52] [INFO] Successfully deployed project: 9lives.xyz
+[2025-09-20 06:53:53] [INFO] Starting deployment for project: 9lives.xyz
+[2025-09-20 06:53:53] [INFO] Successfully deployed project: 9lives.xyz
+[2025-09-20 07:00:51] [INFO] Checking status for project: 9lives.xyz
+[2025-09-20 07:00:51] [INFO] Detected deployment system: custom:scripts/deploy/master-deploy.sh
+[2025-09-20 07:00:51] [INFO] Project uses custom deployment script: scripts/deploy/master-deploy.sh
+[2025-09-20 07:00:51] [INFO] Custom script is executable and ready
+[2025-09-20 07:00:51] [INFO] Run: cd /Users/ryan/development/9lives.xyz && ./scripts/deploy/master-deploy.sh --help for options
+[2025-09-20 07:00:51] [INFO] Status check complete for project: 9lives.xyz
+[2025-09-20 07:02:36] [INFO] Starting deployment plan for project: 9lives.xyz
+[2025-09-20 07:02:36] [INFO] Detected deployment system: custom:scripts/deploy/master-deploy.sh
+[2025-09-20 07:02:36] [INFO] Using custom deployment script: scripts/deploy/master-deploy.sh
+[2025-09-20 07:02:36] [INFO] Running: ./scripts/deploy/master-deploy.sh --auto-approve --plan-only
+[2025-09-20 07:02:41] [ERROR] Custom deployment script failed for 9lives.xyz
+[2025-09-20 07:02:41] [INFO] You can run the script manually: cd /Users/ryan/development/9lives.xyz && ./scripts/deploy/master-deploy.sh --help
+[2025-09-20 07:02:41] [INFO] Successfully completed deployment plan for project: 9lives.xyz
+[2025-09-20 10:52:48] [INFO] Checking status for project: 9lives.xyz
+[2025-09-20 10:52:48] [INFO] Detected deployment system: custom:scripts/deploy/master-deploy.sh
+[2025-09-20 10:52:48] [INFO] Project uses custom deployment script: scripts/deploy/master-deploy.sh
+[2025-09-20 10:52:48] [INFO] Custom script is executable and ready
+[2025-09-20 10:52:48] [INFO] Run: cd /Users/ryan/development/9lives.xyz && ./scripts/deploy/master-deploy.sh --help for options
+[2025-09-20 10:52:48] [INFO] Status check complete for project: 9lives.xyz
+[2025-09-20 10:52:53] [INFO] Managed Projects:
+[2025-09-20 10:52:57] [INFO] Checking status for project: terraform
+[2025-09-20 10:52:57] [INFO] Detected deployment system: none
+[2025-09-20 10:52:57] [WARN] No deployment system detected for terraform
+[2025-09-20 10:52:57] [INFO] Status check complete for project: terraform

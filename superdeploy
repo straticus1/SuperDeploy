@@ -122,14 +122,16 @@ detect_deployment_system() {
     local project=$1
     local project_dir="${PROJECTS_DIR}/${project}"
     
-    # Check for custom deployment scripts (in order of preference)
+    # Priority 1: Custom deployment scripts (they orchestrate TF/Ansible)
+    # These scripts typically handle the full deployment pipeline
     local deploy_scripts=(
-        "scripts/deploy/master-deploy.sh"
-        "scripts/deploy/deploy.sh"
-        "deploy/master-deploy.sh"
-        "deploy/deploy.sh"
-        "bin/deploy.sh"
-        "deploy.sh"
+        "deploy/deploy.sh"            # Most common location
+        "deploy/deploy.py"            # Python deployment scripts  
+        "deploy.sh"                   # Root level deploy script
+        "deploy.py"                   # Root level Python script
+        "scripts/deploy/master-deploy.sh"  # Complex projects
+        "scripts/deploy/deploy.sh"    # Alternative location
+        "bin/deploy.sh"               # Binary/script directory
     )
     
     for script in "${deploy_scripts[@]}"; do
@@ -139,23 +141,24 @@ detect_deployment_system() {
         fi
     done
     
-    # Check for terraform/ansible directories
-    local has_terraform=false
-    local has_ansible=false
-    
+    # Priority 2: Terraform (usually orchestrates Ansible too)
     if [ -d "${project_dir}/terraform" ]; then
-        has_terraform=true
-    fi
-    
-    if [ -d "${project_dir}/ansible" ]; then
-        has_ansible=true
-    fi
-    
-    if [ "$has_terraform" = true ] || [ "$has_ansible" = true ]; then
-        echo "standard:terraform=${has_terraform},ansible=${has_ansible}"
+        # Check if Ansible also exists (Terraform often calls Ansible)
+        if [ -d "${project_dir}/ansible" ]; then
+            echo "standard:terraform=true,ansible=true"
+        else
+            echo "standard:terraform=true,ansible=false"
+        fi
         return 0
     fi
     
+    # Priority 3: Standalone Ansible (fallback)
+    if [ -d "${project_dir}/ansible" ]; then
+        echo "standard:terraform=false,ansible=true"
+        return 0
+    fi
+    
+    # Priority 4: No deployment system found
     echo "none"
     return 1
 }
@@ -169,6 +172,15 @@ deploy_with_custom_script() {
     local extra_args="$@"
     
     log "INFO" "Using custom deployment script: ${script_path}"
+    
+    # Determine how to execute the script
+    local script_command
+    if [[ "${script_path}" == *.py ]]; then
+        script_command="python3 ${script_path}"
+        log "INFO" "Detected Python script, using python3"
+    else
+        script_command="./${script_path}"
+    fi
     
     # Build arguments for custom script
     local script_args="--auto-approve"
@@ -185,13 +197,17 @@ deploy_with_custom_script() {
         script_args="$script_args --application-only"
     fi
     
-    log "INFO" "Running: ./${script_path} ${script_args}"
+    log "INFO" "Running: ${script_command} ${script_args}"
     
     # Change to project directory and run the custom script
     (cd "${project_dir}" && \
-     "./${script_path}" ${script_args}) || {
+     ${script_command} ${script_args}) || {
         log "ERROR" "Custom deployment script failed for ${project}"
-        log "INFO" "You can run the script manually: cd ${project_dir} && ./${script_path} --help"
+        if [[ "${script_path}" == *.py ]]; then
+            log "INFO" "You can run the script manually: cd ${project_dir} && python3 ${script_path} --help"
+        else
+            log "INFO" "You can run the script manually: cd ${project_dir} && ./${script_path} --help"
+        fi
         return 1
     }
 }
@@ -300,14 +316,16 @@ deploy_project() {
             
             # List what we found to help the user
             log "INFO" "Project structure:"
-            find "${project_dir}" -maxdepth 3 -type f -name "*.sh" -o -name "*.yml" -o -name "*.yaml" -o -name "*.tf" | head -10 | while read -r file; do
+            find "${project_dir}" -maxdepth 3 -type f -name "*.sh" -o -name "*.py" -o -name "*.yml" -o -name "*.yaml" -o -name "*.tf" | head -10 | while read -r file; do
                 log "INFO" "  Found: ${file#${project_dir}/}"
             done
             
             log "ERROR" "No suitable deployment system found for ${project}"
-            log "INFO" "Supported deployment systems:"
-            log "INFO" "  • Custom scripts: scripts/deploy/master-deploy.sh, deploy.sh, etc."
-            log "INFO" "  • Standard: terraform/ and/or ansible/ directories"
+            log "INFO" "SuperDeploy detection priority:"
+            log "INFO" "  1. Custom scripts: deploy/deploy.sh, deploy.py, deploy.sh, etc."
+            log "INFO" "  2. Terraform: terraform/ directory (often orchestrates Ansible)"
+            log "INFO" "  3. Ansible: ansible/ directory (standalone)"
+            log "INFO" "  4. Error: No deployment system found (this case)"
             return 1
             ;;
     esac
@@ -512,9 +530,11 @@ main() {
             echo "  --application-only          Deploy application only"
             echo "  --verbose                   Verbose output"
             echo ""
-            echo "Supported Deployment Systems:"
-            echo "  • Custom scripts: scripts/deploy/master-deploy.sh, deploy.sh, etc."
-            echo "  • Standard: terraform/ and/or ansible/ directories"
+            echo "Deployment System Detection Priority:"
+            echo "  1. Custom scripts: deploy/deploy.sh, deploy.py, deploy.sh, etc."
+            echo "  2. Terraform: terraform/ directory (often orchestrates Ansible)"
+            echo "  3. Ansible: ansible/ directory (standalone configuration management)"
+            echo "  4. Error: No deployment system found"
             ;;
     esac
 }

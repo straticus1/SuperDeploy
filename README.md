@@ -91,15 +91,29 @@ For simple terraform/ansible projects:
 └── ...
 ```
 
-### Custom Script Detection Order
+### Deployment Detection Priority
 
-SuperDeploy searches for deployment scripts in this order:
-1. `scripts/deploy/master-deploy.sh`
-2. `scripts/deploy/deploy.sh`
-3. `deploy/master-deploy.sh`
-4. `deploy/deploy.sh`
-5. `bin/deploy.sh`
-6. `deploy.sh`
+SuperDeploy uses this logical hierarchy to determine how to deploy projects:
+
+1. **Custom Deployment Scripts** (Priority 1 - They orchestrate everything)
+   - `deploy/deploy.sh` (most common)
+   - `deploy/deploy.py` (Python scripts)
+   - `deploy.sh` (root level)
+   - `deploy.py` (root level Python)
+   - `scripts/deploy/master-deploy.sh` (complex projects)
+   - `scripts/deploy/deploy.sh` (alternative location)
+   - `bin/deploy.sh` (binary directory)
+
+2. **Terraform** (Priority 2 - Usually orchestrates Ansible)
+   - `terraform/` directory
+   - Often calls Ansible after infrastructure provisioning
+
+3. **Ansible** (Priority 3 - Standalone configuration management)
+   - `ansible/` directory
+   - Used when no Terraform or custom scripts exist
+
+4. **Error** (Priority 4)
+   - No deployment system found
 
 ## Supported Ansible Configurations
 

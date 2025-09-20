@@ -5,6 +5,17 @@ All notable changes to SuperDeploy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-09-20
+
+### Fixed
+- **Deployment Detection Priority**: Corrected logical hierarchy to match real-world deployment patterns:
+  1. Custom deployment scripts (orchestrate everything)
+  2. Terraform (usually orchestrates Ansible)
+  3. Ansible (standalone configuration management)
+  4. Error if none found
+- **Python Script Support**: Added support for `.py` deployment scripts with automatic `python3` execution
+- **Help Documentation**: Updated help text to reflect correct detection priority
+
 ## [2.0.0] - 2025-09-20
 
 ### Added
