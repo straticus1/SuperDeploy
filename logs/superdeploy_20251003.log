@@ -1,0 +1,26 @@
+[2025-10-03 11:42:59] [INFO] Managed Projects:
+[2025-10-03 11:43:05] [INFO] Checking status for project: aeims-control
+[2025-10-03 11:43:05] [INFO] Detected deployment system: custom:deploy.sh
+[2025-10-03 11:43:05] [INFO] Project uses custom deployment script: deploy.sh
+[2025-10-03 11:43:05] [INFO] Custom script is executable and ready
+[2025-10-03 11:43:05] [INFO] Run: cd /Users/ryan/development/aeims-control && ./deploy.sh --help for options
+[2025-10-03 11:43:05] [INFO] Status check complete for project: aeims-control
+[2025-10-03 11:45:15] [INFO] Managed Projects:
+[2025-10-03 11:46:31] [INFO] Managed Projects:
+[2025-10-03 11:46:52] [INFO] Added project 'aeims' to build list.
+[2025-10-03 11:46:56] [INFO] Added project 'aeimsLib' to build list.
+[2025-10-03 11:47:02] [INFO] Managed Projects:
+[2025-10-03 11:47:06] [INFO] Checking status for project: aeims
+[2025-10-03 11:47:06] [INFO] Detected deployment system: none
+[2025-10-03 11:47:06] [WARN] No deployment system detected for aeims
+[2025-10-03 11:47:06] [INFO] Status check complete for project: aeims
+[2025-10-03 11:47:10] [INFO] Checking status for project: aeimsLib
+[2025-10-03 11:47:10] [INFO] Detected deployment system: none
+[2025-10-03 11:47:10] [WARN] No deployment system detected for aeimsLib
+[2025-10-03 11:47:10] [INFO] Status check complete for project: aeimsLib
+[2025-10-03 11:47:14] [INFO] Checking status for project: aeims-control
+[2025-10-03 11:47:14] [INFO] Detected deployment system: custom:deploy.sh
+[2025-10-03 11:47:14] [INFO] Project uses custom deployment script: deploy.sh
+[2025-10-03 11:47:14] [INFO] Custom script is executable and ready
+[2025-10-03 11:47:14] [INFO] Run: cd /Users/ryan/development/aeims-control && ./deploy.sh --help for options
+[2025-10-03 11:47:14] [INFO] Status check complete for project: aeims-control

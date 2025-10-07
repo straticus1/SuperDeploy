@@ -1,0 +1,28 @@
+[2025-10-01 18:55:15] [INFO] Added project 'aeims-control' to build list.
+[2025-10-01 19:39:49] [INFO] Checking status for project: aeims-control
+[2025-10-01 19:39:49] [INFO] Detected deployment system: custom:deploy.sh
+[2025-10-01 19:39:49] [INFO] Project uses custom deployment script: deploy.sh
+[2025-10-01 19:39:49] [INFO] Custom script is executable and ready
+[2025-10-01 19:39:49] [INFO] Run: cd /Users/ryan/development/aeims-control && ./deploy.sh --help for options
+[2025-10-01 19:39:49] [INFO] Status check complete for project: aeims-control
+[2025-10-01 19:39:53] [INFO] Starting deployment plan for project: aeims-control
+[2025-10-01 19:39:53] [INFO] Detected deployment system: custom:deploy.sh
+[2025-10-01 19:39:53] [INFO] Using custom deployment script: deploy.sh
+[2025-10-01 19:39:53] [INFO] Running: ./deploy.sh --auto-approve --plan-only
+[2025-10-01 19:40:07] [ERROR] Custom deployment script failed for aeims-control
+[2025-10-01 19:40:07] [INFO] You can run the script manually: cd /Users/ryan/development/aeims-control && ./deploy.sh --help
+[2025-10-01 19:40:07] [INFO] Successfully completed deployment plan for project: aeims-control
+[2025-10-01 19:41:32] [INFO] Starting deployment plan for project: aeims-control
+[2025-10-01 19:41:32] [INFO] Detected deployment system: custom:deploy.sh
+[2025-10-01 19:41:32] [INFO] Using custom deployment script: deploy.sh
+[2025-10-01 19:41:32] [INFO] Running: ./deploy.sh --auto-approve --plan-only
+[2025-10-01 19:41:42] [ERROR] Custom deployment script failed for aeims-control
+[2025-10-01 19:41:42] [INFO] You can run the script manually: cd /Users/ryan/development/aeims-control && ./deploy.sh --help
+[2025-10-01 19:41:42] [INFO] Successfully completed deployment plan for project: aeims-control
+[2025-10-01 19:41:52] [INFO] Starting deployment plan for project: aeims-control
+[2025-10-01 19:41:52] [INFO] Detected deployment system: custom:deploy.sh
+[2025-10-01 19:41:52] [INFO] Using custom deployment script: deploy.sh
+[2025-10-01 19:41:52] [INFO] Running: ./deploy.sh --auto-approve --plan-only
+[2025-10-01 19:42:07] [ERROR] Custom deployment script failed for aeims-control
+[2025-10-01 19:42:07] [INFO] You can run the script manually: cd /Users/ryan/development/aeims-control && ./deploy.sh --help
+[2025-10-01 19:42:07] [INFO] Successfully completed deployment plan for project: aeims-control

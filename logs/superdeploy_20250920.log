@@ -60,3 +60,19 @@
 [2025-09-20 11:48:58] [INFO] Status check complete for project: test-project
 [2025-09-20 11:49:48] [INFO] Removed project 'test-project' from build list.
 [2025-09-20 11:50:11] [INFO] Available deployment templates:
+[2025-09-20 12:15:42] [INFO] Checking status for project: afterdarksys.com
+[2025-09-20 12:15:42] [INFO] Detected deployment system: custom:deploy.sh
+[2025-09-20 12:15:42] [INFO] Project uses custom deployment script: deploy.sh
+[2025-09-20 12:15:42] [INFO] Custom script is executable and ready
+[2025-09-20 12:15:42] [INFO] Run: cd /Users/ryan/development/afterdarksys.com && ./deploy.sh --help for options
+[2025-09-20 12:15:42] [INFO] Status check complete for project: afterdarksys.com
+[2025-09-20 12:17:51] [INFO] Starting deployment for project: afterdarksys.com
+[2025-09-20 12:17:51] [INFO] Detected deployment system: custom:deploy.sh
+[2025-09-20 12:17:52] [INFO] Using custom deployment script: deploy.sh
+[2025-09-20 12:17:52] [INFO] Running: ./deploy.sh --auto-approve
+[2025-09-20 12:17:52] [INFO] Successfully deployed project: afterdarksys.com
+[2025-09-20 12:18:10] [INFO] Starting deployment for project: afterdarksys.com
+[2025-09-20 12:18:10] [INFO] Detected deployment system: custom:deploy.sh
+[2025-09-20 12:18:10] [INFO] Using custom deployment script: deploy.sh
+[2025-09-20 12:18:10] [INFO] Running: ./deploy.sh --auto-approve --infrastructure-only
+[2025-09-20 12:18:10] [INFO] Successfully deployed project: afterdarksys.com
